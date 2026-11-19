@@ -1,14 +1,68 @@
-# Solace Energy
+# Solace Energy — وب‌سایت خورشیدی تجاری تگزاس
 
-React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user template.
+وب‌سایت شرکتی Solace برای معرفی نصب خورشیدی تجاری، برآورد اولیه صرفه‌جویی، ثبت درخواست ارزیابی محل و مدیریت محرمانه سرنخ‌ها. رابط کاربری انگلیسی است و طراحی با پس‌زمینه سفید، سبز تیره، رنگ تأکیدی کهربایی، IBM Plex Sans و گوشه‌های صاف اجرا شده است.
 
-- `pnpm dev`: development server; honors `PORT` (default 3000).
-- `pnpm build` / `pnpm start`: build and serve `dist/index.js` and `dist/public/`.
-- `pnpm db:migrate`: apply checked-in migrations. `pnpm db:push`: generate and apply new schema changes.
-- `pnpm check` / `pnpm test`: types and application tests.
+## دموی تصویری
 
-Start with the Webdev skill's default-template guide. Platform login, storage, payments and service contracts live in its shared references; read the relevant capability before extending its helper.
+### صفحه اصلی
+![دموی صفحه اصلی Solace](docs/assets/solace-homepage.png)
 
-`server/_core/publicConfig.ts` exposes only named public runtime values. Private keys stay server-side. The platform serves managed `/manus-storage/` assets; the application does not register a second proxy.
+### برآورد تعاملیِ امن
+![دموی نقشه ماهواره‌ای و فرم برآورد](docs/assets/solace-estimate-demo.png)
 
-Platform configuration is readable and editable through `webdev.config`. Default settings are initial values, not enforced constraints. The agent may modify the files, commands and configuration or follow the flexible guide for another stack.
+برای اجرای دمو، برنامه را روی محیطی با Node.js، پایگاه داده و متغیرهای محیطی تنظیم‌شده راه‌اندازی کنید. صفحه `/` را باز کنید و سپس مسیر `/estimate?demo=1` را دنبال کنید. این حالت نمونه Austin, TX، نوع ساختمان Office و قبض فرضی $9,500 را بارگذاری می‌کند؛ تصویر نقشه واقعی از Maps proxy می‌آید و دکمه ارسال سرنخ غیرفعال است. برای برآورد قابل‌ویرایش در محیط معمولی `/estimate` را باز کنید. **این اعداد نمونه‌اند و مربوط به ملک واقعی یا پیشنهاد تجاری نیستند.**
+
+> GitHub Pages نمی‌تواند نسخه کامل برنامه را اجرا کند: سرور Express، احراز هویت، پایگاه داده، اعلان‌ها و پراکسی نقشه لازم‌اند. تصاویر بالا و مسیر read-only `?demo=1` مستندات دمو هستند؛ برای نسخه تعاملی دائمی از میزبانی سازگار با Node.js استفاده کنید. Preview پروژه در Manus برای بازبینی موقت است و ممکن است هنگام خوابیدن رایانه ابری آفلاین شود.
+
+## قابلیت‌ها
+
+- ناوبری شرکتی، بخش‌های راهکارها و صنایع، ارقام شرکت، سه مطالعه موردی، گزینه‌های تأمین مالی، خبرها و فوتر کامل.
+- فرم برآورد با آدرس، نوع ساختمان و قبض ماهانه؛ نمایش اندازه سیستم، صرفه‌جویی سالانه، بازگشت ساده سرمایه و تصویر ماهواره‌ای.
+- درخواست ارزیابی شامل نام، شرکت، سمت، ایمیل کاری، تلفن و رضایت تماس.
+- ذخیره آدرس، اطلاعات تماس، برآورد و UTM در جدول `leads`؛ ارسال اعلان مالک از طریق سرویس پلتفرم.
+- مسیر `/admin` با کنترل مالک سمت سرور، جدول درخواست‌ها و خروجی CSV.
+- عکس‌های نصب در `client/public/images` قرار دارند تا در clone گیت همراه پروژه باشند.
+
+## فناوری
+
+React 19، TypeScript، Vite، Express، tRPC، Drizzle ORM، MySQL و Tailwind CSS. مسیرهای React در `client/src/App.tsx` ثبت شده‌اند و manifest مسیرها در `client/public/manus-routes.json` قرار دارد.
+
+## شروع سریع
+
+نیازمندی‌ها: Node.js سازگار با محیط میزبانی، `pnpm`، MySQL سازگار با MySQL 8 و دسترسی به مقادیر محیطی لازم. در ریشه پروژه:
+
+```bash
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+سپس آدرس توسعه محلی را باز کنید. فرمان‌های کیفیت:
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
+
+`pnpm db:push` برای تغییر عمدی schema و تولید/اعمال migration جدید است؛ برای اجرای معمول، `pnpm db:migrate` را به‌کار ببرید. جزئیات راه‌اندازی محلی، secrets و میزبانی در [راهنمای توسعه و استقرار](docs/development.md) آمده است.
+
+## مستندات
+
+- [دمو و مسیرهای بازبینی](docs/demo.md)
+- [معماری و مسیرهای برنامه](docs/architecture.md)
+- [ثبت سرنخ، UTM، تخمین و اعلان‌ها](docs/lead-management.md)
+- [توسعه محلی، متغیرهای محیطی و استقرار](docs/development.md)
+- [راهنمای مشارکت](CONTRIBUTING.md)
+
+## تنظیمات ضروری و امنیت
+
+کلیدها را در Git قرار ندهید. `DATABASE_URL` برای Drizzle لازم است. ورود OAuth و نشست‌ها به پیکربندی پلتفرم نیاز دارند. `MANUS_API_URL` و `MANUS_API_KEY` برای پراکسی نقشه و اعلان مالک در سمت سرور استفاده می‌شوند. مقدار `SOLACE_OWNER_EMAIL` باید با ایمیلی که مالک با آن وارد OAuth می‌شود تنظیم شود؛ کنترل دسترسی `/admin` سمت سرور و بدون افشای این مقدار در مرورگر انجام می‌شود. فهرست کامل در [راهنمای توسعه](docs/development.md) است.
+
+## داده‌های نمونه و حقوق دارایی‌ها
+
+آمار شرکت (تأسیس ۲۰۱۱، ۴۲۰ کارمند و ۳۱۰ مگاوات نصب‌شده) مطابق brief ورودی است. نام مشتری‌ها، ارقام مطالعات موردی و خبرهای درج‌شده محتوای نمایشی‌اند و پیش از انتشار تجاری باید با داده‌های تأییدشده جایگزین شوند. عکس‌ها برای نمونه بصری انتخاب شده‌اند؛ مجوز استفاده تجاری و الزام‌های انتساب آن‌ها باید پیش از انتشار عمومی بررسی شود.
+
+## مجوز
+
+کد پروژه تحت MIT ارائه می‌شود؛ تصاویر و علائم تجاری شخص ثالث لزوماً تحت این مجوز نیستند. متن مجوز در `LICENSE` است.
