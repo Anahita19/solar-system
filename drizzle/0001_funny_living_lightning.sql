@@ -1,0 +1,20 @@
+CREATE TABLE `leads` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`address` text NOT NULL,
+	`buildingType` varchar(100) NOT NULL,
+	`monthlyBill` decimal(12,2) NOT NULL,
+	`systemKw` decimal(12,2) NOT NULL,
+	`annualSavings` decimal(12,2) NOT NULL,
+	`paybackYears` decimal(6,2) NOT NULL,
+	`name` varchar(200) NOT NULL,
+	`company` varchar(200) NOT NULL,
+	`role` varchar(160) NOT NULL,
+	`email` varchar(320) NOT NULL,
+	`phone` varchar(50) NOT NULL,
+	`consent` int NOT NULL,
+	`utmSource` varchar(255),
+	`utmMedium` varchar(255),
+	`utmCampaign` varchar(255),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `leads_id` PRIMARY KEY(`id`)
+);

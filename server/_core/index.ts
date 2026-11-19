@@ -15,6 +15,28 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  app.get("/api/property-map", async (req, res) => {
+    const address = typeof req.query.address === "string" ? req.query.address.trim() : "";
+    if (address.length < 5 || address.length > 500) return res.status(400).json({ error: "A valid property address is required." });
+    const apiUrl = process.env.MANUS_API_URL;
+    const key = process.env.MANUS_API_KEY;
+    if (!apiUrl || !key) return res.status(503).json({ error: "Satellite mapping is not configured." });
+    const url = new URL(`${apiUrl.replace(/\/$/, "")}/v1/maps/proxy/maps/api/staticmap`);
+    url.search = new URLSearchParams({ center: address, zoom: "18", size: "900x560", maptype: "satellite", markers: `color:yellow|${address}`, key }).toString();
+    try {
+      const map = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      if (!map.ok) {
+        console.error("Maps proxy rejected satellite request:", map.status, (await map.text()).slice(0, 500));
+        return res.status(502).json({ error: "Satellite imagery is temporarily unavailable." });
+      }
+      res.set("Content-Type", map.headers.get("content-type") || "image/png");
+      res.set("Cache-Control", "private, max-age=300");
+      res.status(200).send(Buffer.from(await map.arrayBuffer()));
+    } catch (error) {
+      console.error("Satellite map request failed:", error);
+      res.status(502).json({ error: "Satellite imagery is temporarily unavailable." });
+    }
+  });
   app.get("/api/platform/config.js", (_req, res) => {
     res.set("Cache-Control", "no-store").type("application/javascript").send(publicPlatformScript());
   });

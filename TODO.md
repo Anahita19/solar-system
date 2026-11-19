@@ -1,0 +1,7 @@
+# Delivery outcomes
+
+- [x] Corporate Solace website and navigation — Provide the thin utility bar with customer portal, support, careers, and phone; main dropdown navigation for Rooftop Solar, Carports, Battery Storage, Operations & Maintenance, Industries, Projects, Financing, and About; “Get an estimate” action; full-width warehouse solar hero with two actions and the overlapping “Estimate your savings” panel containing building address, building type, and monthly bill; sections for solutions, industries, company figures, three case studies with client, kW, and yearly savings, financing, dated news, and footer with offices, licences, and legal links.
+- [x] Property estimate — The estimate form opens `/estimate` with the submitted property details, a satellite view through the platform Maps proxy, and system size, annual savings, and payback estimate.
+- [x] Site assessment lead capture — Request a site assessment asks for name, company, role, work email, phone, and consent; saves the address, estimate and UTM source/medium/campaign in the managed database; sends an owner notification and shows a confirmation.
+- [x] Owner lead administration — `/admin` requires authenticated admin role; provides a lead table and CSV export.
+- [x] Responsive visual system — White background, deep green `#0F3D2E`, amber `#F2A900` actions, IBM Plex Sans, square corners, thin dividers, installation and crew photography, and no gradients, circle icons, glowing sun motifs or emoji.
