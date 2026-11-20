@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
+import { TRPCError } from "@trpc/server";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -21,6 +23,12 @@ export const systemRouter = router({
       })
     )
     .mutation(async ({ input }) => {
+      if (IS_PUBLIC_DEMO) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Owner notifications are disabled in public demo mode.",
+        });
+      }
       const delivered = await notifyOwner(input);
       return {
         success: delivered,

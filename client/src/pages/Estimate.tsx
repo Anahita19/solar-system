@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { LanguageSwitch, useLanguage, type Language } from "@/contexts/LanguageContext";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
 
 type EstimateStart = { address?: string; type?: string; bill?: string };
 type ContactForm = { name: string; company: string; role: string; email: string; phone: string; consent: boolean };
@@ -39,7 +40,7 @@ const estimateCopy = {
     ],
     monthlyBill: "میانگین قبض ماهانه برق",
     nextStep: "گام بعدی",
-    demoNotice: "حالت دمو · ارسال درخواست غیرفعال است",
+    demoNotice: "این نسخه فقط برای نمایش است؛ اطلاعات شرکت و پروژه‌ها نمونه‌اند و امکان ثبت درخواست یا ارسال اطلاعات وجود ندارد.",
     requestTitle: "درخواست ارزیابی محل",
     requestIntro: "برای شناخت مجموعه شما و هماهنگی بازدید بدون تعهد، با شما تماس می‌گیریم.",
     fullName: "نام و نام خانوادگی",
@@ -91,7 +92,7 @@ const estimateCopy = {
     ],
     monthlyBill: "Average monthly electricity bill",
     nextStep: "Next step",
-    demoNotice: "Demo mode · submissions are disabled",
+    demoNotice: "This is a view-only demo. Company and project details are samples; forms and lead submissions are disabled.",
     requestTitle: "Request a site assessment",
     requestIntro: "We'll follow up to learn about your facility and arrange a no-obligation site review.",
     fullName: "Full name",
@@ -117,7 +118,7 @@ const estimateCopy = {
 export default function Estimate() {
   const { language } = useLanguage();
   const c = estimateCopy[language];
-  const isDemoMode = useMemo(() => new URLSearchParams(window.location.search).get("demo") === "1", []);
+  const isDemoMode = IS_PUBLIC_DEMO || new URLSearchParams(window.location.search).get("demo") === "1";
   const initial = useMemo<EstimateStart>(() => {
     if (isDemoMode) return { address: "Austin, TX", type: "Office", bill: "9500" };
     try {
@@ -205,12 +206,12 @@ export default function Estimate() {
       </div>
       <aside className="estimate-edit">
         <p className="eyebrow">{c.propertyDetails}</p>
-        <label>{c.address}<input dir="ltr" value={address} onChange={event => setAddress(event.target.value)} onBlur={() => { if (address.trim() !== mapAddress) { setMapFailed(false); setMapAddress(address.trim()); } }} placeholder={c.addressPlaceholder} /></label>
-        <label>{c.buildingType}<select value={type} onChange={event => setType(event.target.value)}>{c.buildingTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-        <label>{c.monthlyBill}<div className="money-input"><span>$</span><input dir="ltr" type="number" min="100" value={bill} onChange={event => setBill(Number(event.target.value))} /></div></label>
+        <label>{c.address}<input dir="ltr" readOnly={isDemoMode} value={address} onChange={event => setAddress(event.target.value)} onBlur={() => { if (address.trim() !== mapAddress) { setMapFailed(false); setMapAddress(address.trim()); } }} placeholder={c.addressPlaceholder} /></label>
+        <label>{c.buildingType}<select disabled={isDemoMode} value={type} onChange={event => setType(event.target.value)}>{c.buildingTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        <label>{c.monthlyBill}<div className="money-input"><span>$</span><input dir="ltr" readOnly={isDemoMode} type="number" min="100" value={bill} onChange={event => setBill(Number(event.target.value))} /></div></label>
         <div className="assessment-form">
           <p className="eyebrow">{c.nextStep}</p>
-          {isDemoMode && <p className="muted demo-notice">{c.demoNotice}</p>}
+          {isDemoMode ? <div className="demo-readonly"><h2>{c.requestTitle}</h2><p className="demo-notice" role="note">{c.demoNotice}</p></div> : <>
           <h2>{c.requestTitle}</h2>
           <p>{c.requestIntro}</p>
           {done ? <div className="success-panel"><Check /><h3>{c.successTitle}</h3><p>{c.successPrefix} {form.name}. {c.successSuffix}</p></div> : <form onSubmit={send}>
@@ -223,6 +224,7 @@ export default function Estimate() {
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="btn btn-green full" disabled={isDemoMode || submit.isPending}>{isDemoMode ? c.demoButton : submit.isPending ? c.sending : c.requestButton}<ArrowRight className="directional-arrow" size={15} /></button>
           </form>}
+          </>}
         </div>
       </aside>
     </main>

@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { LanguageSwitch, useLanguage } from "@/contexts/LanguageContext";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
 
 const persianBuildingTypes: Record<string, string> = {
   "Warehouse": "انبار",
@@ -50,6 +51,9 @@ const adminCopy = {
     payback: "بازگشت سرمایه",
     direct: "مستقیم",
     empty: "هنوز درخواست ارزیابی ثبت نشده است.",
+    demoTitle: "پنل مالک در نسخهٔ دمو غیرفعال است",
+    demoCopy: "این نسخه فقط نمایشی است و به اطلاعات درخواست‌های واقعی دسترسی ندارد.",
+    demoDescription: "نسخهٔ نمایشی؛ در این صفحه درخواست واقعی یا دادهٔ محرمانه‌ای نمایش داده نمی‌شود.",
   },
   en: {
     pageTitle: "Lead management | Solace Energy",
@@ -81,6 +85,9 @@ const adminCopy = {
     payback: "yr payback",
     direct: "Direct",
     empty: "No assessment requests yet.",
+    demoTitle: "Owner workspace is disabled in the demo",
+    demoCopy: "This is a view-only demonstration and cannot access real assessment requests.",
+    demoDescription: "Public demo: no real requests or confidential lead records are shown here.",
   },
 } as const;
 
@@ -89,8 +96,8 @@ export default function Admin() {
   const c = adminCopy[language];
   const locale = language === "fa" ? "fa-IR" : "en-US";
   const auth = useAuth();
-  const owner = trpc.auth.isOwner.useQuery(undefined, { enabled: Boolean(auth.user), retry: false });
-  const q = trpc.lead.adminList.useQuery(undefined, { enabled: owner.data === true, retry: false });
+  const owner = trpc.auth.isOwner.useQuery(undefined, { enabled: !IS_PUBLIC_DEMO && Boolean(auth.user), retry: false });
+  const q = trpc.lead.adminList.useQuery(undefined, { enabled: !IS_PUBLIC_DEMO && owner.data === true, retry: false });
   const rows = q.data || [];
   const csv = useMemo(() => {
     const headers = ["Created", "Name", "Company", "Role", "Email", "Phone", "Address", "Building type", "Monthly bill", "System kW", "Annual savings", "Payback years", "UTM source", "UTM medium", "UTM campaign"];
@@ -110,16 +117,16 @@ export default function Admin() {
     URL.revokeObjectURL(anchor.href);
   }
 
-  const checking = auth.loading || (Boolean(auth.user) && owner.isLoading) || q.isLoading;
+  const checking = !IS_PUBLIC_DEMO && (auth.loading || (Boolean(auth.user) && owner.isLoading) || q.isLoading);
   const formatted = (value: number) => new Intl.NumberFormat(locale).format(value);
 
   return <div className="admin-page">
     <header className="admin-top"><div className="wrap"><Link href="/" className="brand"><span className="brand-mark">S</span><span>SOLACE<small>ENERGY</small></span></Link><div className="admin-top-actions"><LanguageSwitch /><span>{c.header}</span></div></div></header>
     <main className="wrap admin-content">
-      <div className="admin-heading"><div><p className="eyebrow">{c.eyebrow}</p><h1>{c.heading}</h1><p>{c.description}</p></div>
+      <div className="admin-heading"><div><p className="eyebrow">{c.eyebrow}</p><h1>{c.heading}</h1><p>{IS_PUBLIC_DEMO ? c.demoDescription : c.description}</p></div>
         {owner.data === true && <div className="admin-actions"><button className="btn btn-green" onClick={download} disabled={!rows.length}><Download size={16} />{c.export}</button><button className="btn btn-outline-dark" onClick={() => auth.logout()}><LogOut size={15} />{c.signOut}</button></div>}
       </div>
-      {checking ? <p>{c.checking}</p> : !auth.user ? <div className="admin-gate"><h2>{c.signInTitle}</h2><p>{c.signInCopy}</p><button className="btn btn-green" onClick={() => startLogin()}>{c.signIn}</button></div>
+      {IS_PUBLIC_DEMO ? <div className="admin-gate"><h2>{c.demoTitle}</h2><p>{c.demoCopy}</p></div> : checking ? <p>{c.checking}</p> : !auth.user ? <div className="admin-gate"><h2>{c.signInTitle}</h2><p>{c.signInCopy}</p><button className="btn btn-green" onClick={() => startLogin()}>{c.signIn}</button></div>
         : owner.isError ? <div className="admin-gate"><h2>{c.verifyTitle}</h2><p>{c.retryCopy}</p><button className="btn btn-outline-dark" onClick={() => owner.refetch()}>{c.retry}</button></div>
           : owner.data !== true ? <div className="admin-gate"><h2>{c.ownerOnlyTitle}</h2><p>{c.ownerOnlyCopy}</p><button className="btn btn-outline-dark" onClick={() => auth.logout()}>{c.signOut}</button></div>
             : q.error ? <div className="admin-gate"><h2>{c.loadTitle}</h2><p>{language === "en" ? q.error.message : "لطفاً اتصال را بررسی و دوباره تلاش کنید."}</p><button className="btn btn-outline-dark" onClick={() => q.refetch()}>{c.retry}</button></div>

@@ -7,6 +7,9 @@ import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
+
+let publicDemoMapCache: { bytes: Buffer; contentType: string } | null = null;
 
 async function startServer() {
   const app = express();
@@ -18,6 +21,14 @@ async function startServer() {
   app.get("/api/property-map", async (req, res) => {
     const address = typeof req.query.address === "string" ? req.query.address.trim() : "";
     if (address.length < 5 || address.length > 500) return res.status(400).json({ error: "A valid property address is required." });
+    if (IS_PUBLIC_DEMO && address !== "Austin, TX") return res.status(403).json({ error: "Public demo map requests are restricted to the sample property." });
+    if (IS_PUBLIC_DEMO && publicDemoMapCache) {
+      return res
+        .set("Content-Type", publicDemoMapCache.contentType)
+        .set("Cache-Control", "public, max-age=86400")
+        .status(200)
+        .send(publicDemoMapCache.bytes);
+    }
     const apiUrl = process.env.MANUS_API_URL;
     const key = process.env.MANUS_API_KEY;
     if (!apiUrl || !key) return res.status(503).json({ error: "Satellite mapping is not configured." });
@@ -29,9 +40,12 @@ async function startServer() {
         console.error("Maps proxy rejected satellite request:", map.status, (await map.text()).slice(0, 500));
         return res.status(502).json({ error: "Satellite imagery is temporarily unavailable." });
       }
-      res.set("Content-Type", map.headers.get("content-type") || "image/png");
-      res.set("Cache-Control", "private, max-age=300");
-      res.status(200).send(Buffer.from(await map.arrayBuffer()));
+      const contentType = map.headers.get("content-type") || "image/png";
+      const bytes = Buffer.from(await map.arrayBuffer());
+      if (IS_PUBLIC_DEMO) publicDemoMapCache = { bytes, contentType };
+      res.set("Content-Type", contentType);
+      res.set("Cache-Control", IS_PUBLIC_DEMO ? "public, max-age=86400" : "private, max-age=300");
+      res.status(200).send(bytes);
     } catch (error) {
       console.error("Satellite map request failed:", error);
       res.status(502).json({ error: "Satellite imagery is temporarily unavailable." });

@@ -7,6 +7,8 @@ import { getDb } from "./db";
 import { leads } from "../drizzle/schema";
 import { z } from "zod";
 import { desc } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
 
 const leadInput = z.object({
   address: z.string().min(5).max(500), buildingType: z.string().min(2).max(100), monthlyBill: z.number().min(100).max(10000000),
@@ -33,6 +35,12 @@ export const appRouter = router({
   }),
   lead: router({
     submit: publicProcedure.input(leadInput).mutation(async ({ input }) => {
+      if (IS_PUBLIC_DEMO) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Lead submissions are disabled in public demo mode.",
+        });
+      }
       const db = await getDb();
       if (!db) throw new Error("Lead storage is temporarily unavailable. Please try again.");
       await db.insert(leads).values({ ...input, monthlyBill: String(input.monthlyBill), systemKw: String(input.systemKw), annualSavings: String(input.annualSavings), paybackYears: String(input.paybackYears), consent: 1 });
@@ -46,6 +54,12 @@ export const appRouter = router({
       return { success: true };
     }),
     adminList: ownerProcedure.query(async () => {
+      if (IS_PUBLIC_DEMO) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Lead management is disabled in public demo mode.",
+        });
+      }
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
       return db.select().from(leads).orderBy(desc(leads.createdAt));

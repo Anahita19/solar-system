@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
 import { LanguageSwitch, useLanguage, type Language } from "@/contexts/LanguageContext";
+import { IS_PUBLIC_DEMO } from "@shared/site-mode";
 
 const projects = [
   { name: "Northgate Distribution Center", kw: "4,820 kW", save: "$684,000", img: "/images/warehouse-rooftop-solar.png" },
@@ -35,7 +36,7 @@ const homeCopy = {
     heroCaption: "پروژه اجرایی سولاس · دالاس، تگزاس",
     estimateEyebrow: "شروعی هوشمندانه",
     estimateTitle: "صرفه‌جویی‌تان را برآورد کنید",
-    estimateIntro: "کمی درباره ملک‌تان به ما بگویید.",
+    estimateIntro: "برآورد نمونه را برای یک ساختمان اداری در آستین بررسی کنید.",
     address: "نشانی ساختمان",
     addressPlaceholder: "خیابان، شهر، کد پستی",
     buildingType: "نوع ساختمان",
@@ -157,7 +158,7 @@ const homeCopy = {
     heroCaption: "SOLACE INSTALLATION · DALLAS, TX",
     estimateEyebrow: "A smarter start",
     estimateTitle: "Estimate your savings",
-    estimateIntro: "Tell us a little about your property.",
+    estimateIntro: "Explore a sample estimate for an office building in Austin.",
     address: "Building address",
     addressPlaceholder: "Street address, city, ZIP",
     buildingType: "Building type",
@@ -267,9 +268,9 @@ function Header({ c }: { c: (typeof homeCopy)[Language] }) {
         <div className="utility-actions">
           <LanguageSwitch />
           <span>{c.customerPortal}</span>
-          <a className="utility-support" href="tel:+18005550146">{c.support}</a>
+          {IS_PUBLIC_DEMO ? <span className="utility-support">{c.support}</span> : <a className="utility-support" href="tel:+18005550146">{c.support}</a>}
           <a className="utility-careers" href="#careers">{c.careers}</a>
-          <a className="phone" href="tel:+18005550146" dir="ltr">+1 (800) 555-0146</a>
+          {IS_PUBLIC_DEMO ? <span className="phone" dir="ltr">+1 (800) 555-0146</span> : <a className="phone" href="tel:+18005550146" dir="ltr">+1 (800) 555-0146</a>}
         </div>
       </div>
     </div>
@@ -293,9 +294,9 @@ function Header({ c }: { c: (typeof homeCopy)[Language] }) {
 export default function Home() {
   const { language } = useLanguage();
   const c = homeCopy[language];
-  const [address, setAddress] = useState("");
-  const [type, setType] = useState("Warehouse");
-  const [bill, setBill] = useState("");
+  const [address, setAddress] = useState(IS_PUBLIC_DEMO ? "Austin, TX" : "");
+  const [type, setType] = useState(IS_PUBLIC_DEMO ? "Office" : "Warehouse");
+  const [bill, setBill] = useState(IS_PUBLIC_DEMO ? "9500" : "");
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -311,6 +312,10 @@ export default function Home() {
 
   function estimate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (IS_PUBLIC_DEMO) {
+      location.href = "/estimate?demo=1";
+      return;
+    }
     sessionStorage.setItem("solaceEstimate", JSON.stringify({ address, type, bill }));
     location.href = "/estimate";
   }
@@ -337,9 +342,9 @@ export default function Home() {
         <div className="wrap">
           <form className="estimate-card" onSubmit={estimate}>
             <div className="est-title"><span className="eyebrow">{c.estimateEyebrow}</span><h2>{c.estimateTitle}</h2><p>{c.estimateIntro}</p></div>
-            <label>{c.address}<input required dir="ltr" placeholder={c.addressPlaceholder} value={address} onChange={event => setAddress(event.target.value)} /></label>
-            <label>{c.buildingType}<select value={type} onChange={event => setType(event.target.value)}>{c.buildingTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-            <label>{c.monthlyBill}<div className="money-input"><span>$</span><input required dir="ltr" type="number" min="100" placeholder="8,500" value={bill} onChange={event => setBill(event.target.value)} /></div></label>
+            <label>{c.address}<input required readOnly={IS_PUBLIC_DEMO} dir="ltr" placeholder={c.addressPlaceholder} value={address} onChange={event => setAddress(event.target.value)} /></label>
+            <label>{c.buildingType}<select disabled={IS_PUBLIC_DEMO} value={type} onChange={event => setType(event.target.value)}>{c.buildingTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+            <label>{c.monthlyBill}<div className="money-input"><span>$</span><input required readOnly={IS_PUBLIC_DEMO} dir="ltr" type="number" min="100" placeholder="8,500" value={bill} onChange={event => setBill(event.target.value)} /></div></label>
             <button className="btn btn-green">{c.calculate}<ArrowRight className="directional-arrow" size={16} /></button>
           </form>
         </div>
@@ -392,7 +397,7 @@ export default function Home() {
     </main>
 
     <footer className="footer"><div className="wrap footer-main">
-      <div className="footer-brand"><a className="brand brand-light" href="/"><span className="brand-mark">S</span><span>SOLACE<small>ENERGY</small></span></a><p>{c.footerDescription}</p><a href="tel:+18005550146" dir="ltr">+1 (800) 555-0146</a><p className="license">{c.licence}<br />{c.licenceDetails}</p></div>
+      <div className="footer-brand"><a className="brand brand-light" href="/"><span className="brand-mark">S</span><span>SOLACE<small>ENERGY</small></span></a><p>{c.footerDescription}</p>{IS_PUBLIC_DEMO ? <span className="footer-phone" dir="ltr">+1 (800) 555-0146</span> : <a href="tel:+18005550146" dir="ltr">+1 (800) 555-0146</a>}<p className="license">{c.licence}<br />{c.licenceDetails}</p></div>
       <div><h4>{c.footerSolutions}</h4>{[c.rooftopSolar, c.solarCarports, c.batteryStorage, c.operations].map(item => <a href="#solutions" key={item}>{item}</a>)}</div>
       <div><h4>{c.footerIndustries}</h4>{c.industries.map(item => <a href="#industries" key={item}>{item}</a>)}</div>
       <div id="careers"><h4>{c.footerCompany}</h4><a href="#about">{c.aboutSolace}</a><a href="#projects">{c.projectsNav}</a><a href="#news">{c.newsInsights}</a><a href="#careers">{c.careers}</a></div>
