@@ -1,44 +1,129 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { Download, LogOut } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
+import { LanguageSwitch, useLanguage } from "@/contexts/LanguageContext";
+
+const persianBuildingTypes: Record<string, string> = {
+  "Warehouse": "انبار",
+  "Factory / manufacturing": "کارخانه / تولید",
+  "School / campus": "مدرسه / پردیس آموزشی",
+  "Office": "دفتر کار",
+  "Retail": "فروشگاه / خرده‌فروشی",
+  "Other": "سایر",
+};
 
 function csvCell(value: unknown) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
+const adminCopy = {
+  fa: {
+    pageTitle: "مدیریت سرنخ‌ها | سولاس انرژی",
+    header: "مدیریت درخواست‌ها",
+    eyebrow: "فضای کاری مالک",
+    heading: "درخواست‌های ارزیابی",
+    description: "اطلاعات محرمانه سرنخ‌ها و برآوردهای اولیه پروژه.",
+    export: "دریافت CSV",
+    signOut: "خروج",
+    checking: "در حال بررسی دسترسی…",
+    signInTitle: "ورود مالک لازم است",
+    signInCopy: "برای مشاهده درخواست‌ها با حساب مالک سولاس وارد شوید.",
+    signIn: "ورود امن",
+    verifyTitle: "تأیید دسترسی مالک ممکن نشد",
+    retryCopy: "صفحه را تازه‌سازی کنید یا دوباره وارد شوید.",
+    retry: "تلاش دوباره",
+    ownerOnlyTitle: "فقط مالک مجاز است",
+    ownerOnlyCopy: "این بخش فقط برای حساب مالک تعریف‌شدهٔ سولاس در دسترس است.",
+    loadTitle: "بارگذاری درخواست‌ها ممکن نشد",
+    request: "درخواست",
+    requests: "درخواست",
+    contact: "راه‌های تماس",
+    property: "ملک",
+    estimate: "برآورد",
+    attribution: "منبع جذب",
+    received: "زمان دریافت",
+    monthly: "ماهانه",
+    year: "سالانه",
+    payback: "بازگشت سرمایه",
+    direct: "مستقیم",
+    empty: "هنوز درخواست ارزیابی ثبت نشده است.",
+  },
+  en: {
+    pageTitle: "Lead management | Solace Energy",
+    header: "LEAD MANAGEMENT",
+    eyebrow: "OWNER WORKSPACE",
+    heading: "Assessment requests",
+    description: "Confidential lead details and preliminary project estimates.",
+    export: "Export CSV",
+    signOut: "Sign out",
+    checking: "Checking access…",
+    signInTitle: "Owner sign-in required",
+    signInCopy: "Sign in with the Solace owner account to view submitted leads.",
+    signIn: "Sign in securely",
+    verifyTitle: "Unable to verify owner access",
+    retryCopy: "Please refresh the page or sign in again.",
+    retry: "Try again",
+    ownerOnlyTitle: "Owner access only",
+    ownerOnlyCopy: "This workspace is restricted to the configured Solace owner account.",
+    loadTitle: "Unable to load leads",
+    request: "request",
+    requests: "requests",
+    contact: "CONTACT",
+    property: "PROPERTY",
+    estimate: "ESTIMATE",
+    attribution: "ATTRIBUTION",
+    received: "RECEIVED",
+    monthly: "monthly",
+    year: "year",
+    payback: "yr payback",
+    direct: "Direct",
+    empty: "No assessment requests yet.",
+  },
+} as const;
+
 export default function Admin() {
+  const { language } = useLanguage();
+  const c = adminCopy[language];
+  const locale = language === "fa" ? "fa-IR" : "en-US";
   const auth = useAuth();
   const owner = trpc.auth.isOwner.useQuery(undefined, { enabled: Boolean(auth.user), retry: false });
   const q = trpc.lead.adminList.useQuery(undefined, { enabled: owner.data === true, retry: false });
   const rows = q.data || [];
   const csv = useMemo(() => {
     const headers = ["Created", "Name", "Company", "Role", "Email", "Phone", "Address", "Building type", "Monthly bill", "System kW", "Annual savings", "Payback years", "UTM source", "UTM medium", "UTM campaign"];
-    return [headers, ...rows.map(r => [r.createdAt, r.name, r.company, r.role, r.email, r.phone, r.address, r.buildingType, r.monthlyBill, r.systemKw, r.annualSavings, r.paybackYears, r.utmSource, r.utmMedium, r.utmCampaign])]
+    return [headers, ...rows.map(row => [row.createdAt, row.name, row.company, row.role, row.email, row.phone, row.address, row.buildingType, row.monthlyBill, row.systemKw, row.annualSavings, row.paybackYears, row.utmSource, row.utmMedium, row.utmCampaign])]
       .map(row => row.map(csvCell).join(",")).join("\r\n");
   }, [rows]);
+
+  useEffect(() => {
+    document.title = c.pageTitle;
+  }, [c.pageTitle]);
+
   function download() {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "solace-leads.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    anchor.download = "solace-leads.csv";
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
   }
+
   const checking = auth.loading || (Boolean(auth.user) && owner.isLoading) || q.isLoading;
+  const formatted = (value: number) => new Intl.NumberFormat(locale).format(value);
 
   return <div className="admin-page">
-    <header className="admin-top"><div className="wrap"><Link href="/" className="brand"><span className="brand-mark">S</span><span>SOLACE<small>ENERGY</small></span></Link><span>LEAD MANAGEMENT</span></div></header>
+    <header className="admin-top"><div className="wrap"><Link href="/" className="brand"><span className="brand-mark">S</span><span>SOLACE<small>ENERGY</small></span></Link><div className="admin-top-actions"><LanguageSwitch /><span>{c.header}</span></div></div></header>
     <main className="wrap admin-content">
-      <div className="admin-heading"><div><p className="eyebrow">OWNER WORKSPACE</p><h1>Assessment requests</h1><p>Confidential lead details and preliminary project estimates.</p></div>
-        {owner.data === true && <div className="admin-actions"><button className="btn btn-green" onClick={download} disabled={!rows.length}><Download size={16}/> Export CSV</button><button className="btn btn-outline-dark" onClick={() => auth.logout()}><LogOut size={15}/> Sign out</button></div>}
+      <div className="admin-heading"><div><p className="eyebrow">{c.eyebrow}</p><h1>{c.heading}</h1><p>{c.description}</p></div>
+        {owner.data === true && <div className="admin-actions"><button className="btn btn-green" onClick={download} disabled={!rows.length}><Download size={16} />{c.export}</button><button className="btn btn-outline-dark" onClick={() => auth.logout()}><LogOut size={15} />{c.signOut}</button></div>}
       </div>
-      {checking ? <p>Checking access…</p> : !auth.user ? <div className="admin-gate"><h2>Owner sign-in required</h2><p>Sign in with the Solace owner account to view submitted leads.</p><button className="btn btn-green" onClick={() => startLogin()}>Sign in securely</button></div>
-        : owner.isError ? <div className="admin-gate"><h2>Unable to verify owner access</h2><p>Please refresh the page or sign in again.</p><button className="btn btn-outline-dark" onClick={() => owner.refetch()}>Try again</button></div>
-        : owner.data !== true ? <div className="admin-gate"><h2>Owner access only</h2><p>This workspace is restricted to the configured Solace owner account.</p><button className="btn btn-outline-dark" onClick={() => auth.logout()}>Sign out</button></div>
-        : q.error ? <div className="admin-gate"><h2>Unable to load leads</h2><p>{q.error.message}</p><button className="btn btn-outline-dark" onClick={() => q.refetch()}>Try again</button></div>
-        : <><div className="lead-count">{rows.length} {rows.length === 1 ? "request" : "requests"}</div><div className="table-shell"><table className="lead-table"><thead><tr><th>CONTACT</th><th>PROPERTY</th><th>ESTIMATE</th><th>ATTRIBUTION</th><th>RECEIVED</th></tr></thead><tbody>{rows.map(r => <tr key={r.id}><td><b>{r.name}</b><small>{r.company} · {r.role}</small><a href={`mailto:${r.email}`}>{r.email}</a><a href={`tel:${r.phone}`}>{r.phone}</a></td><td><b>{r.address}</b><small>{r.buildingType} · ${Number(r.monthlyBill).toLocaleString()}/mo</small></td><td><b>{Number(r.systemKw).toLocaleString()} kW</b><small>${Number(r.annualSavings).toLocaleString()}/yr</small><small>{r.paybackYears} yr payback</small></td><td>{r.utmSource || "Direct"}<small>{r.utmMedium || "—"} · {r.utmCampaign || "—"}</small></td><td>{new Date(r.createdAt).toLocaleDateString()}</td></tr>)}</tbody></table>{!rows.length && <p className="empty-leads">No assessment requests yet.</p>}</div></>}
+      {checking ? <p>{c.checking}</p> : !auth.user ? <div className="admin-gate"><h2>{c.signInTitle}</h2><p>{c.signInCopy}</p><button className="btn btn-green" onClick={() => startLogin()}>{c.signIn}</button></div>
+        : owner.isError ? <div className="admin-gate"><h2>{c.verifyTitle}</h2><p>{c.retryCopy}</p><button className="btn btn-outline-dark" onClick={() => owner.refetch()}>{c.retry}</button></div>
+          : owner.data !== true ? <div className="admin-gate"><h2>{c.ownerOnlyTitle}</h2><p>{c.ownerOnlyCopy}</p><button className="btn btn-outline-dark" onClick={() => auth.logout()}>{c.signOut}</button></div>
+            : q.error ? <div className="admin-gate"><h2>{c.loadTitle}</h2><p>{language === "en" ? q.error.message : "لطفاً اتصال را بررسی و دوباره تلاش کنید."}</p><button className="btn btn-outline-dark" onClick={() => q.refetch()}>{c.retry}</button></div>
+              : <><div className="lead-count">{formatted(rows.length)} {rows.length === 1 ? c.request : c.requests}</div><div className="table-shell"><table className="lead-table"><thead><tr><th>{c.contact}</th><th>{c.property}</th><th>{c.estimate}</th><th>{c.attribution}</th><th>{c.received}</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td><b>{row.name}</b><small>{row.company} · {row.role}</small><a dir="ltr" href={`mailto:${row.email}`}>{row.email}</a><a dir="ltr" href={`tel:${row.phone}`}>{row.phone}</a></td><td><b>{row.address}</b><small>{(language === "fa" ? persianBuildingTypes[row.buildingType] || row.buildingType : row.buildingType)} · <bdi dir="ltr">${formatted(Number(row.monthlyBill))}/{c.monthly}</bdi></small></td><td><b dir="ltr">{formatted(Number(row.systemKw))} kW</b><small dir="ltr">${formatted(Number(row.annualSavings))}/{c.year}</small><small>{row.paybackYears} {c.payback}</small></td><td>{row.utmSource || c.direct}<small>{row.utmMedium || "—"} · {row.utmCampaign || "—"}</small></td><td>{new Date(row.createdAt).toLocaleDateString(locale)}</td></tr>)}</tbody></table>{!rows.length && <p className="empty-leads">{c.empty}</p>}</div></>}
     </main>
   </div>;
 }
