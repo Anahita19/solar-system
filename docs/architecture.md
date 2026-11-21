@@ -1,8 +1,8 @@
-# معماری Solace
+# Application Architecture
 
-## نمای کلی
+## Overview
 
-برنامه یک وب‌اپلیکیشن تمام‌پشته است، نه یک سایت ایستای صرف. Vite/React در مرورگر اجرا می‌شود و Express در همان برنامه endpointهای پلتفرم و API را میزبانی می‌کند. tRPC قرارداد تایپ‌شده میان صفحات و سرور است. Drizzle برای MySQL استفاده می‌شود.
+Solace is a full-stack web application, not a static-only website. Vite and React serve the browser UI; Express hosts the application APIs and platform endpoints. tRPC provides typed calls between the frontend and server, and Drizzle connects to MySQL.
 
 ```text
 Browser
@@ -12,48 +12,62 @@ Browser
           │
 Express server
   ├── OAuth/session middleware and request context
-  ├── public estimate submission → MySQL `leads`
-  ├── owner-only lead list → MySQL `leads`
-  ├── platform Maps proxy (private server key)
-  └── platform owner notification
+  ├── demo-mode guards for lead mutations and lead-list access
+  ├── platform Maps proxy (server-side credential)
+  └── owner-notification integration (blocked in demo mode)
+          │
+MySQL
+  ├── users
+  └── leads (production-intended; not populated by public-demo submissions)
 ```
 
-## مسیرهای رابط کاربری
+The checked-in release sets `IS_PUBLIC_DEMO = true` in `shared/site-mode.ts`. Read-only behavior is enforced in the UI and again on the server; hiding a form alone is not the security boundary.
 
-| مسیر | کاربرد |
+## UI routes
+
+| Route | Purpose |
 | --- | --- |
-| `/` | صفحه اصلی، راهکارها و صنایع، ارقام، مطالعات موردی، تأمین مالی، اخبار و فرم آغاز برآورد |
-| `/estimate` | نمای ملک، برآورد اقتصادی، اطلاعات تماس و رضایت برای بازدید |
-| `/admin` | جدول سرنخ‌ها و CSV؛ داده فقط برای حساب مالک مجاز است |
+| `/` | Homepage, solutions and industries, company figures, illustrative case studies, financing, news, and estimate entry point |
+| `/estimate` | Property view and sample savings estimate; contact capture is disabled in public-demo mode |
+| `/admin` | Owner-only lead table and CSV in a future production mode; closed in the public demo |
 
-`client/public/manus-routes.json` فهرست routeهای شناخته‌شده را برای پلتفرم اعلام می‌کند.
+`client/public/manus-routes.json` declares the known routes to the platform.
 
-## جریان برآورد و سرنخ
+## Current public-demo request flow
 
-1. فرم صفحه اصلی نوع ساختمان، قبض ماهانه و آدرس را در session storage نگه می‌دارد و کاربر را به `/estimate` می‌برد؛ UTMهای URL نیز برای اتصال به فرم ذخیره می‌شوند.
-2. کاربر آدرس را وارد می‌کند. مرورگر تنها مسیر نسبی `/api/property-map` را صدا می‌زند؛ کلید سرور به مرورگر نمی‌رود. Express درخواست static-map را به Maps proxy پلتفرم می‌فرستد و تصویر را برمی‌گرداند.
-3. برآورد مرورگر برای تجربه مقدماتی محاسبه می‌شود. توضیح صفحه تصریح می‌کند که اعداد پیشنهاد یا ضمانت نیستند.
-4. ارسال فرم از اعتبارسنجی Zod در tRPC می‌گذرد و آدرس، نوع ساختمان، قبض، محاسبات، مشخصات تماس، رضایت و UTMها را در جدول `leads` ثبت می‌کند.
-5. سرور برای مالک اعلان پلتفرمی می‌فرستد. شکست اعلان سرنخ ذخیره‌شده را حذف نمی‌کند و در log سرور ثبت می‌شود.
-6. `/admin` وضعیت مالک را از `auth.isOwner` می‌گیرد. `lead.adminList` جداگانه و دوباره در سرور با `ownerProcedure` بررسی می‌شود؛ کنترل UI به‌تنهایی مرز امنیتی نیست.
+1. The UI presents a fixed Austin, Texas sample property and illustrative estimate values. The `?lang=en` query selects English; absent a query or saved choice, first-time visitors see Persian.
+2. The browser uses the relative URL `/api/property-map`. The Express proxy permits only the fixed sample address, uses the platform Maps service with a server-side key, and caches the sample response.
+3. No visitor contact form is shown. `lead.submit`, owner notification, and owner lead-list access are rejected server-side while demo mode is enabled.
+4. `/admin` shows a demo notice rather than customer records. The demo does not create leads or owner notifications.
 
-## تRPC و HTTP
+## Production-intended flows (currently disabled)
 
-- `auth.me`: نشست جاری یا `null`.
-- `auth.isOwner`: نتیجه بولی برای حساب واردشده؛ ایمیل مجاز از secret سمت سرور خوانده می‌شود.
-- `auth.logout`: پاک‌کردن cookie نشست.
-- `lead.submit`: اعتبارسنجی و ذخیره سرنخ؛ ورودی‌ها در `server/routers.ts` تعریف شده‌اند.
-- `lead.adminList`: فهرست مرتب‌شده بر اساس زمان ایجاد؛ فقط از `ownerProcedure`.
-- `GET /api/property-map?address=...`: تصویر ماهواره‌ای از Maps proxy. ورودی آدرس بین ۵ تا ۵۰۰ نویسه محدود شده و پاسخ تصویر با cache کوتاه ارائه می‌شود.
-- `GET /api/health`: health check میزبانی.
+The application code includes the intended workflow for a future, reviewed production release:
 
-## اجزای داده
+1. The homepage stores the selected building type, monthly bill, property address, and UTM values for the estimate flow.
+2. The estimate page would calculate preliminary system size, annual savings, and simple payback; these calculations are illustrative and require financial and engineering validation before commercial use.
+3. A site-assessment form would validate consent and contact fields through Zod and store property, estimate, contact, and UTM data in the `leads` table.
+4. The server would send an owner notification after saving a lead. A notification failure would not delete a successfully saved record.
+5. An authenticated owner would access a server-guarded lead list at `/admin` and export CSV.
 
-Schema در `drizzle/schema.ts` تعریف می‌شود. migrationهای versioned در `drizzle/` هستند. کاربران OAuth در `users` و درخواست‌ها در `leads` ذخیره می‌شوند. برای فهرست فیلدها و مرزهای داده، [مستندات lead-management](lead-management.md) را ببینید.
+None of those write or record-list operations is active in the current public-demo build.
 
-## دارایی‌ها
+## API surface
 
-عکس‌های نمونه در `client/public/images/` و تصاویر اسکرین‌شات راهنما در `docs/assets/` ذخیره می‌شوند. از این رو clone گیت می‌تواند صفحات و عکس‌ها را بدون دسترسی به storage پروژه رندر کند. فونت IBM Plex Sans از طریق CSS بارگذاری می‌شود و در صورت نیاز فونت جایگزین سیستم استفاده می‌شود.
-## زبان و راست‌به‌چپ
+- `auth.me`: current session or `null`.
+- `auth.isOwner`: owner status for the authenticated account; the allowed email is read server-side.
+- `auth.logout`: clear the session cookie.
+- `lead.submit`: production-intended lead mutation; blocked while public-demo mode is enabled.
+- `lead.adminList`: production-intended owner lead listing; protected by `ownerProcedure` and blocked in demo mode.
+- `GET /api/property-map?address=...`: image response from the Maps proxy; only the fixed demo address is accepted in the current release.
+- `GET /api/health`: unauthenticated health check for hosting.
 
-`client/src/contexts/LanguageContext.tsx` زبان مشترک `fa` و `en` را مدیریت می‌کند. نخستین بازدید فارسی است؛ انتخاب کاربر در `localStorage` ذخیره می‌شود، ویژگی‌های `lang` و `dir` سند را به‌روزرسانی می‌کند و عنوان صفحه با زبان فعال همگام می‌ماند. صفحه اصلی، برآورد و ثبت درخواست، پنل مالک و مسیر 404 متن دوزبانه دارند.
+## Data model
+
+The Drizzle schema is in `drizzle/schema.ts`; versioned migrations are under `drizzle/`. OAuth users are stored in `users`; the `leads` schema describes the future lead workflow. Public-demo requests do not populate this table. See [Lead management](lead-management.md) for fields, estimate assumptions, and access-control details.
+
+## Assets and language
+
+Photography used by the UI lives in `client/public/images/`; documentation screenshots are in `docs/assets/`. These paths are committed so a repository clone can render the site without private project storage.
+
+`client/src/contexts/LanguageContext.tsx` manages Persian (`fa`) and English (`en`). First-time visitors default to Persian; a `?lang=en` or `?lang=fa` query explicitly overrides that default and any stored selection. Otherwise, the language switch is saved in `localStorage`. The active language updates the document's `lang` and `dir` attributes and the UI direction.

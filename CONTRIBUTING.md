@@ -1,21 +1,21 @@
-# مشارکت در Solace
+# Contributing to Solace
 
-## گردش کار پیشنهادی
+## Suggested workflow
 
-1. شاخه‌ای جدا برای تغییر بسازید.
-2. قبل از تغییر رفتار سرور، قرارداد تRPC، schema و docs مرتبط را با هم مرور کنید.
-3. اگر schema عوض شد، migration تولیدشده را commit و [راهنمای داده](docs/lead-management.md) را به‌روز کنید.
-4. `pnpm check`, `pnpm test` و `pnpm build` را اجرا کنید.
-5. مستندات یا اسکرین‌شات دمو را هم‌زمان با تغییر رابط به‌روز کنید.
+1. Create a separate branch for your change.
+2. Before changing server behavior, review the tRPC contract, database schema, and related documentation together.
+3. If the schema changes, commit the generated migration and update [Lead Management](docs/lead-management.md).
+4. Run `pnpm check`, `pnpm test`, and `pnpm build`.
+5. Update the English documentation and committed screenshots when the UI changes. Preserve the Persian-first language behavior unless the product owner approves a change.
 
-## قواعد امنیت
+## Security rules
 
-- Secret، cookie، access token، `DATABASE_URL`، اطلاعات فرم یا log حاوی PII را commit نکنید.
-- دسترسی admin فقط باید در سرور بررسی شود؛ هرگز به کنترل React تنها اتکا نکنید.
-- پیش از ارسال فرم در DB مشترک یا production، مالک را مطلع کنید؛ درخواست‌های آزمایشی داده و اعلان واقعی می‌سازند.
-- داده/اعداد case study، حقوق عکس و مجوزهای قانونی را پیش از انتشار عمومی تأیید کنید.
-- مسیرهای جدید را در `client/public/manus-routes.json` ثبت کنید.
+- Never commit secrets, cookies, access tokens, `DATABASE_URL`, form submissions, or logs containing personally identifiable information.
+- Enforce admin access on the server; never rely on React UI checks alone.
+- Do not disable public-demo protections or send test forms to a shared/production database. The public demo rejects lead submissions, notifications, and lead-list access.
+- Verify company claims, case-study data, photography rights, licences, and legal content before commercial publication.
+- Add new application routes to `client/public/manus-routes.json`.
 
-## تغییر برآورد مالی
+## Changes to estimate assumptions
 
-فرمول فعلی demo است، نه پیشنهاد تجاری. قبل از تغییر آن، فرض‌های نرخ برق، بازده تولید، CAPEX، مشوق مالیاتی و simple-payback را با افراد مالی و مهندسی بررسی کرده و disclaimer را حفظ کنید.
+The current formula is illustrative, not a commercial offer. Before changing it, review electricity-rate, production, CAPEX, tax-incentive, and simple-payback assumptions with finance and engineering; retain a clear disclaimer.

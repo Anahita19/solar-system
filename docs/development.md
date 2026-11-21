@@ -1,62 +1,64 @@
-# توسعه، پیکربندی و استقرار
+# Development, Configuration, and Deployment
 
-## پیش‌نیازها
+## Requirements
 
-- Node.js سازگار با محیط Cloud و `pnpm` مطابق `packageManager` در `package.json`.
-- MySQL سازگار با MySQL 8.
-- تنظیمات OAuth/session پلتفرم در اجرای کامل.
-- دسترسی به سرویس Maps و اعلان پلتفرم برای ویژگی‌های مربوطه.
+- Node.js compatible with the Cloud/runtime environment and the `pnpm` version declared by `package.json`.
+- MySQL-compatible database for database-backed development.
+- Platform OAuth/session configuration for the full application.
+- Access to the platform Maps proxy and owner-notification service for those integrations.
 
-## متغیرهای محیطی
+## Environment variables
 
-مقادیر را در secret/config manager محیط توسعه یا استقرار وارد کنید؛ `.env` واقعی را commit نکنید.
+Provide values through a secure development or deployment secret/configuration manager. Never commit a real `.env` file.
 
-| نام | حساس | کاربرد |
+| Name | Sensitivity | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | بله | اتصال Drizzle و برنامه به MySQL |
-| `MANUS_PROJECT_ID` | کم‌حساس/زیرساخت | شناسه پروژه OAuth |
-| `MANUS_JWT_SECRET` | بله | امضای نشست/auth |
-| `MANUS_OAUTH_API_URL` | زیرساخت | سرویس سمت سرور OAuth |
-| `MANUS_OAUTH_PORTAL_URL` | عمومی | آدرس پورتال ورود |
-| `MANUS_API_URL` | زیرساخت | پایه endpointهای Maps و اعلان |
-| `MANUS_API_KEY` | بله | کلید API سمت سرور برای Maps proxy و اعلان |
-| `MANUS_API_BROWSER_KEY` | عمومی | پیکربندی public پلتفرم؛ کد نقشه فعلی از endpoint server-side استفاده می‌کند |
-| `SOLACE_OWNER_EMAIL` | بله | ایمیل مجاز برای بررسی مالک در `/admin` |
-| `PORT` | خیر | پورت سرور، پیش‌فرض 3000 |
-| `NODE_ENV` | خیر | حالت اجرای Node؛ dev در script توسعه تعیین می‌شود |
+| `DATABASE_URL` | Secret | Drizzle/MySQL connection string |
+| `MANUS_PROJECT_ID` | Infrastructure | OAuth project identifier |
+| `MANUS_JWT_SECRET` | Secret | Session/auth signing |
+| `MANUS_OAUTH_API_URL` | Infrastructure | Server-side OAuth service |
+| `MANUS_OAUTH_PORTAL_URL` | Public | Login portal URL |
+| `MANUS_API_URL` | Infrastructure | Base URL for Maps and notification endpoints |
+| `MANUS_API_KEY` | Secret | Server-side key for Maps proxy and notifications |
+| `MANUS_API_BROWSER_KEY` | Public | Platform browser configuration; the current map flow uses the server-side endpoint |
+| `SOLACE_OWNER_EMAIL` | Secret | Email allowed to access `/admin` in a reviewed production configuration |
+| `PORT` | Non-secret | Server port; defaults to `3000` |
+| `NODE_ENV` | Non-secret | Node runtime mode |
 
-مقادیر `MANUS_*` در محیط مدیریت‌شده توسط پلتفرم فراهم می‌شوند. برای اجرای خارج از آن، قرارداد OAuth و Maps را با provider سازگار تنظیم کنید. `MANUS_API_KEY` هرگز نباید در متغیرهای build فرانت‌اند یا فایل tracked قرار بگیرد.
+Managed-platform values are provided by the platform runtime. When running elsewhere, configure compatible OAuth and Maps providers. Never expose `MANUS_API_KEY` through frontend build variables or tracked files.
 
-## اجرای محلی
+## Local development
 
 ```bash
 pnpm install
-# DATABASE_URL و secrets لازم را از محیط امن فراهم کنید
+# Provide DATABASE_URL and any required runtime credentials through a secure environment.
 pnpm db:migrate
 pnpm dev
 ```
 
-سرور dev روی `PORT` و به‌طور پیش‌فرض `3000` اجرا می‌شود. در اجرای بدون DB، برنامه اصلی ممکن است بالا بیاید اما ثبت lead/admin کار نمی‌کند. برآورد آدرس به endpoint Maps نیاز دارد. برای کار آفلاین با صفحات فقط نمایشی از `pnpm dev:static` استفاده کنید؛ این فرمان Express، DB، احراز هویت و API نقشه را فراهم نمی‌کند.
+The development server listens on `PORT`, defaulting to `3000`. The current codebase intentionally keeps `IS_PUBLIC_DEMO = true` in `shared/site-mode.ts`; lead submissions, owner notifications, and owner lead listing remain blocked. A database is still required for database-backed development, authentication, or production-intended flows. Address imagery requires the server-side Maps integration. `pnpm dev:static` can be used to view static frontend routes but does not provide Express APIs, database access, authentication, or the map proxy.
 
-## پایگاه داده
+## Database commands
 
-- `pnpm db:migrate`: اجرای migrationهای checked-in در `drizzle/`.
-- `pnpm db:push`: تولید migration جدید از schema و اعمال آن؛ فقط برای تغییر آگاهانه schema.
-- schema در `drizzle/schema.ts` و اتصال Drizzle در `drizzle.config.ts` است.
-- migration موجود جدول `leads` را اضافه می‌کند؛ برای داده‌های محیط اشتراکی، قبل از تغییر schema از DB backup بگیرید.
+- `pnpm db:migrate` applies checked-in migrations under `drizzle/`.
+- `pnpm db:push` generates and applies a migration for an intentional schema change; do not use it for routine startup.
+- The schema is defined in `drizzle/schema.ts`; Drizzle configuration is in `drizzle.config.ts`.
+- Back up shared environment data before changing the schema.
 
-## کنترل کیفیت
+## Quality checks
 
 ```bash
-pnpm check       # TypeScript
-pnpm test        # Vitest
-pnpm build       # فرانت‌اند و سرور production
+pnpm check       # TypeScript checks
+pnpm test        # Vitest suite
+pnpm build       # Frontend and production server build
 ```
 
-پس از تغییر مسیرها، `client/public/manus-routes.json` را هم به‌روز کنید.
+Keep `client/public/manus-routes.json` synchronized when routes change.
 
-## استقرار و دمو
+## Deployment and live-demo publication
 
-این برنامه به runtime دارای Node/Express، MySQL، secrets، OAuth و proxy API نیاز دارد. GitHub Pages فقط فایل ایستا میزبانی می‌کند؛ بنابراین مسیرهای `/api/trpc`، `/api/property-map`، ورود مالک و persistence را اجرا نمی‌کند. برای دموی تعاملی از میزبانی Node-capable و DB استفاده کنید؛ envهای `all`, `dev`, `production` را طبق محیط تعیین کنید، migrationها را اعمال کنید و `/api/health` را برای health check تنظیم کنید.
+The full application requires a Node/Express runtime, MySQL, secrets, OAuth, and the platform API proxy. GitHub Pages only serves static files and cannot run `/api/trpc`, `/api/property-map`, owner authentication, or persistence.
 
-انتقال مخزن به GitHub به‌تنهایی برنامه را deploy یا public نمی‌کند و تغییر visibility/publication باید جداگانه از مسیر رسمی همان سرویس انجام شود. عکس‌های داخل repo باعث می‌شوند رابط در clone قابل مشاهده باشد؛ بدون backend، تخمین‌های مبتنی بر آدرس، lead capture و `/admin` فعال نیستند.
+The project is connected to the GitHub repository `Anahita19/solar-system`, and automatic publishing is off. For this GitHub-canonical project, the live site must be published from the Manus Dashboard after signing in. A saved commit, successful GitHub push, or working Preview is not proof of publication. Confirm the deployment is reachable and public before sharing a permanent URL; until then, do not call a Preview URL the live demo. Update the README and this guide with the verified URL after deployment succeeds.
+
+Before any commercial launch, explicitly review the demo guard, verified company content, image rights, legal and accessibility requirements, estimate assumptions, database, OAuth, and notification behavior. Do not disable `IS_PUBLIC_DEMO` until those reviews and production configuration are complete.

@@ -1,33 +1,54 @@
-# دمو و سناریوی بازبینی
+# Demo Guide
 
-این مخزن اسکرین‌شات‌های واقعی از برنامه در حال اجرا دارد:
+## Release status
 
-## صفحه اصلی
+This repository contains a clearly labelled **read-only demo**. A permanent public live-demo URL is not yet available: the GitHub-canonical website must be published from the Manus Dashboard, and success must be confirmed before a URL is shared. The temporary project Preview is for review only and is not a live-demo link.
 
-![صفحه اصلی کامل Solace](assets/solace-homepage.png)
+## English screenshots
 
-## برآورد امن همراه با نقشه
+### Homepage
 
-![دموی Austin و درخواست ارزیابی با ارسال غیرفعال](assets/solace-estimate-demo.png)
+![Solace homepage in English](assets/solace-homepage.png)
 
-## اجرای دمو تعاملی
+### Sample estimate
 
-1. محیط Node، DB و secrets را طبق [راهنمای توسعه](development.md) آماده کنید.
-2. `pnpm db:migrate` و سپس `pnpm dev` را اجرا کنید.
-3. صفحه `/` را باز کنید و navigation، dropdownها و فرم «Estimate your savings» را بررسی کنید.
-4. برای برآورد نمایشی از `/estimate?demo=1` استفاده کنید. این مسیر Austin, TX، نوع Office و قبض فرضی $9,500 را بارگذاری می‌کند؛ Maps proxy تصویر ماهواره‌ای را می‌آورد و ارسال lead غیرفعال است.
-5. برای سنجش واقعیِ ورودی‌ها `/estimate` را باز کنید، آدرس آزمایشی خود را وارد کنید و از فیلد خارج شوید. اندازه سیستم، صرفه‌جویی سالانه و payback با فرض‌های نمایشی تازه می‌شوند.
-6. برای بازبینی مالک، با حساب OAuth که ایمیلش در `SOLACE_OWNER_EMAIL` تنظیم شده وارد `/admin` شوید. جدول و CSV فقط پس از ثبت درخواست در محیط آزمایشی داده‌ای برای نمایش دارند.
+![Read-only sample estimate in English](assets/solace-estimate-demo.png)
 
-حالت `?demo=1` و اسکرین‌شات‌ها lead یا اعلان نمی‌سازند. برای آزمون ذخیره‌سازی و اعلان، DB و سرویس‌های sandbox را جداگانه تنظیم کنید و یک درخواست واضحاً آزمایشی در حالت عادی بفرستید.
+### Homepage on mobile
 
-## وضعیت دمو عمومی
+![Solace homepage in English on a mobile viewport](assets/solace-homepage-mobile.png)
 
-اسکرین‌شات‌ها داخل GitHub قابل مشاهده هستند. دمو تعاملی در Preview پروژه برای بازبینی در دسترس است، ولی Preview موقت است. لینک دائمی عمومی نیازمند استقرار جداگانه روی میزبانی دارای backend و انتخاب visibility مناسب است. GitHub Pages برای این برنامه کافی نیست.
+These screenshots are committed assets and can be viewed directly on GitHub. They show the English interface; the application remains Persian by default on a first visit, and an explicit `?lang=en` query opens the English view.
 
-## محتوای نمایشی و عکس‌ها
+## Try the interactive demo
 
-نام مشتری‌های case study، اعداد صرفه‌جویی و خبرها برای نمایش طراحی تولید شده‌اند؛ پیش از عرضه عمومی با اطلاعات تأییدشده جایگزین شوند. عکس‌های نصب برای نمونه بصری گردآوری شده‌اند؛ مجوز، حقوق صاحب اثر و انتساب هر asset را پیش از استفاده تجاری/عمومی بررسی کنید.
-## زبان رابط کاربری
+For a local instance, prepare Node.js, `pnpm`, database connectivity, and runtime configuration as described in [Development and deployment](development.md), then run:
 
-در بازدید نخست، رابط به فارسی و راست‌به‌چپ نمایش داده می‌شود. از کنترل «فارسی | English» در نوار بالای سایت یا صفحه برآورد می‌توان زبان را عوض کرد؛ انتخاب ذخیره می‌شود و در مسیرهای صفحه اصلی، برآورد و پنل مالک باقی می‌ماند. اسکرین‌شات‌های بالا نیز اکنون نسخه فارسی پیش‌فرض را نشان می‌دهند.
+```bash
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+Open these routes:
+
+1. `/?lang=en` — the English homepage. With no language query and no saved preference, the first visit is Persian.
+2. `/estimate?demo=1&lang=en` — the fixed Austin, Texas sample estimate in English. The demo inputs are read-only; no contact form or lead capture is shown.
+3. `/admin` — the owner panel is unavailable in public-demo mode and shows a demo notice.
+
+The Austin sample uses a fixed building type and illustrative monthly bill. Estimate figures are not a quote, engineering assessment, or guarantee. The map proxy only allows the fixed sample address; it rejects arbitrary addresses.
+
+## Safety boundaries
+
+The public-demo flag is enabled in `shared/site-mode.ts`. While it is on:
+
+- Server-side lead submissions and owner-notification mutations are rejected.
+- The owner lead-list endpoint is blocked, and the demo does not expose stored customer records.
+- The public UI does not request visitor contact details.
+- The map proxy allows only the fixed Austin sample address and caches the response.
+
+Do not test production lead capture by disabling the guard against a shared or live database. A production test requires a separately configured test database and notification destination, plus explicit review of the privacy and consent flows.
+
+## Content and image notes
+
+Company figures (2011 founding, 420 employees, and 310 MW installed) were supplied in the project brief and are not independently verified. Case-study names, savings values, and news are illustrative placeholders. Review all claims and secure permissions or licences for photography before commercial publication.

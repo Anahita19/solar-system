@@ -10,6 +10,8 @@ const LANGUAGE_STORAGE_KEY = "solaceLanguage";
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function getInitialLanguage(): Language {
+  const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
+  if (requestedLanguage === "en" || requestedLanguage === "fa") return requestedLanguage;
   try {
     return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "en" ? "en" : "fa";
   } catch {

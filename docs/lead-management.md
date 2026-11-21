@@ -1,19 +1,23 @@
-# مدیریت سرنخ‌ها و برآورد
+# Lead Management and Estimates
 
-## فرم و اعتبارسنجی
+## Current demo behavior
 
-فرم «Request a site assessment» در `/estimate` این داده‌ها را می‌گیرد:
+The current release is a public, read-only demonstration with `IS_PUBLIC_DEMO = true`. It does not request visitor contact details or save leads. Server-side lead submissions, owner notifications, and the owner lead-list endpoint are blocked; `/admin` displays a demo notice. The remaining sections document the production-intended data model and must not be read as a claim that the public demo currently collects information.
 
-- ملک: آدرس، نوع ساختمان، قبض متوسط برق ماهانه.
-- تخمین: اندازه سیستم به kW، صرفه‌جویی سالانه، بازگشت ساده سرمایه به سال.
-- تماس: نام، نام شرکت، سمت، ایمیل کاری، تلفن و رضایت صریح برای تماس.
-- انتساب: `utm_source`، `utm_medium` و `utm_campaign` از URL یا مقادیر ذخیره‌شده میان صفحه اصلی و برآورد.
+## Production-intended form and validation
 
-در `server/routers.ts` طول و نوع ورودی با Zod کنترل می‌شود: آدرس ۵ تا ۵۰۰ نویسه، قبض از ۱۰۰ تا ۱۰٬۰۰۰٬۰۰۰، ایمیل معتبر و consent دقیقاً `true`. وجود رضایت برای mutation اجباری است.
+The future “Request a site assessment” flow at `/estimate` is designed to request:
 
-## فرمول تخمین نمایشی
+- Property: address, building type, and average monthly electricity bill.
+- Estimate: system size in kW, annual savings, and simple payback in years.
+- Contact: name, company, role, work email, phone, and explicit consent to be contacted.
+- Attribution: `utm_source`, `utm_medium`, and `utm_campaign` from the URL or values carried from the homepage.
 
-این اعداد ساده و غیرالزام‌آورند و جایگزین تحلیل تعرفه، مهندسی، سایه‌اندازی، بار مصرف یا بررسی سقف نیستند:
+`server/routers.ts` uses Zod validation: address length 5–500 characters, monthly bill from 100 to 10,000,000, valid email, and consent exactly `true`. Consent is mandatory for the production-intended mutation. The public-demo guard rejects the mutation before it stores a lead.
+
+## Illustrative estimate formula
+
+These values are simplified and non-binding. They are not a substitute for tariff analysis, engineering, shading, load, roof, or interconnection review.
 
 ```text
 annualSavings = monthlyBill × 12 × 0.68
@@ -21,30 +25,32 @@ systemKw       = annualSavings ÷ (0.12 × 1,500)
 paybackYears   = systemKw × 1,050 ÷ annualSavings
 ```
 
-در این فرض‌ها، ۶۸٪ قبض سالانه صرفه‌جویی بالقوه، $0.12/kWh تعرفه فرضی، 1,500 kWh تولید سالانه هر kW و $1,050/kW هزینه نصب مفروض است. فرمول فقط برای تجربه نمونه است؛ پیش از استفاده تجاری با مدل مالی واقعی شرکت جایگزین و توسط تیم مالی/مهندسی تأیید شود.
+The example assumes that 68% of the annual bill can be offset, an illustrative electricity rate of `$0.12/kWh`, annual production of `1,500 kWh` per installed kW, and installed cost of `$1,050/kW`. Replace and validate these assumptions with the company's financial and engineering teams before any commercial use.
 
-## جدول `leads`
+## `leads` table (production-intended)
 
-| ستون | نوع/محتوا |
+| Columns | Contents |
 | --- | --- |
-| `id`, `createdAt` | شناسه و زمان ثبت |
-| `address`, `buildingType` | مشخصات ملک |
-| `monthlyBill` | قبض متوسط ماهانه، عدد اعشاری |
-| `systemKw`, `annualSavings`, `paybackYears` | خروجی تخمین اولیه، اعشاری |
-| `name`, `company`, `role`, `email`, `phone` | مشخصات تماس |
-| `consent` | رضایت تماس (عدد ۱ در DB) |
-| `utmSource`, `utmMedium`, `utmCampaign` | انتساب اختیاری |
+| `id`, `createdAt` | Record identifier and creation time |
+| `address`, `buildingType` | Property details |
+| `monthlyBill` | Average monthly bill, decimal value |
+| `systemKw`, `annualSavings`, `paybackYears` | Preliminary estimate outputs, decimal values |
+| `name`, `company`, `role`, `email`, `phone` | Contact information |
+| `consent` | Consent to contact (stored as `1` in the database) |
+| `utmSource`, `utmMedium`, `utmCampaign` | Optional attribution values |
 
-Schema و migration منبع حقیقت‌اند: `drizzle/schema.ts` و فایل‌های `drizzle/*.sql`.
+The schema and migrations are the source of truth: `drizzle/schema.ts` and `drizzle/*.sql`. Public-demo requests do not populate this table.
 
-## ذخیره‌سازی و اعلان
+## Storage and owner notification (production-intended)
 
-داده ابتدا در MySQL ثبت می‌شود، سپس با endpoint اعلان پلتفرم به مالک اطلاع داده می‌شود. endpoint سمت سرور از `MANUS_API_URL` و `MANUS_API_KEY` استفاده می‌کند. این پروژه ایمیل مقصد سفارشی نمی‌فرستد؛ اعلان به مالک پروژه از مسیر اعلان پلتفرم انجام می‌شود. شکست شبکه/API در log ثبت می‌شود، اما پس از ذخیره موفق، lead همچنان ثبت‌شده محسوب می‌شود. در محیطی که پیکربندی API موجود نباشد، ارسال اعلان تضمین نیست.
+A future enabled flow would save a lead to MySQL, then notify the owner through the platform notification endpoint using server-side `MANUS_API_URL` and `MANUS_API_KEY`. The project does not send to a configurable customer-email destination. Notification failure is logged and does not erase an already saved lead. Notifications are disabled while public-demo mode is active.
 
-فرم دمو را بدون آماده‌سازی inbox و پایگاه داده production آزمایش نکنید؛ ارسال واقعی در جدول ذخیره می‌شود و می‌تواند اعلان بفرستد. برای تست کامل از DB و پروژه آزمایشی استفاده کنید.
+Never test this flow against a shared or production database without an explicit, separately configured test environment and notification destination.
 
-## کنترل `/admin` و CSV
+## `/admin` and CSV access
 
-`SOLACE_OWNER_EMAIL` secret است و در کد مرورگر، log برنامه یا CSV قرار نمی‌گیرد. مالک باید با همان ایمیل از OAuth وارد شود. مقایسه در سرور case-insensitive است و مسیر داده نیز `ownerProcedure` را اجرا می‌کند. `/admin` فهرست کامل PII سرنخ‌ها را نشان می‌دهد؛ CSV تمام فیلدهای جدول از جمله اطلاعات تماس و UTM را شامل می‌شود. دسترسی به حساب مالک، secret، DB و export باید محدود شود.
+`SOLACE_OWNER_EMAIL` is a server-side secret and must not appear in browser code, logs, or CSV output. In a reviewed production configuration, the owner signs in through OAuth using that email. The server compares it case-insensitively, and the data route separately enforces `ownerProcedure`; UI checks alone are not an access-control boundary.
 
-برای افزودن مالک دیگر یا نقش تیمی، ابتدا سیاست مجوز و audit طراحی کنید؛ این نسخه فقط یک ایمیل مالک پیکربندی‌شده را مجاز می‌داند.
+The production-intended admin table and CSV contain personally identifiable contact information and UTM data. Access to the owner account, secret, database, and exports must be restricted. In the public demo, the owner lead-list endpoint is blocked and the UI does not expose records.
+
+Before adding more owners or team roles, design authorization and audit policies. The current intended owner check permits one configured email.
